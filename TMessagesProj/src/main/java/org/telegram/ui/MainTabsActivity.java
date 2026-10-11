@@ -178,6 +178,8 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     private MainTabsLayout tabsView;
     private BlurredBackgroundDrawable tabsViewBackground;
     private View fadeView;
+    private boolean fadeViewColorInitialized;
+    private int fadeViewLastColor;
     private boolean lastHideContacts = NaConfig.INSTANCE.getMainTabsHideContacts().Bool();
     private boolean lastHideCalls = MainTabsHelper.isCallsTabHidden();
     private boolean lastHideProfile = MainTabsHelper.isProfileTabHidden();
@@ -1490,10 +1492,22 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     }
 
     private void blur3_updateFadeColors() {
-        iBlur3SourceColor.setColor(getEstBackgroundColor());
-        if (fadeView != null) {
-            fadeView.invalidate();
+        final int color = getEstBackgroundColor();
+        iBlur3SourceColor.setColor(color);
+
+        if (fadeView == null) {
+            return;
         }
+        // Called every frame from dispatchDraw() (see createContentView).
+        // Only invalidate when the estimated background color actually changed,
+        // otherwise this drives an endless frame-by-frame redraw of the whole
+        // contentView subtree (main thread + RenderThread never go idle).
+        if (fadeViewColorInitialized && fadeViewLastColor == color) {
+            return;
+        }
+        fadeViewColorInitialized = true;
+        fadeViewLastColor = color;
+        fadeView.invalidate();
     }
 
     private void blur3_updateColors() {

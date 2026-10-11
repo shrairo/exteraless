@@ -55,7 +55,28 @@ public class DownloadProgressIcon extends View implements NotificationCenter.Not
 
         downloadImageReceiver.setAutoRepeat(1);
         downloadDrawable.setAutoRepeat(1);
-        downloadDrawable.start();
+
+        // setImageBitmap() parks these drawables in ImageReceiver.staticThumbDrawable, and
+        // ImageReceiver.getLottieAnimation() only inspects currentImageDrawable /
+        // currentMediaDrawable. So addParentView() is never called and the drawables'
+        // invalidateInternal() has no target: the frame callbacks keep firing but nothing
+        // is redrawn. updateCurrentFrame() only advances while drawing, and its swap
+        // permit is consumed per frame, so the animation freezes on its first frame
+        // (which is empty for both download_progress and download_finish). Registering
+        // this view as master parent restores that notification path.
+        downloadDrawable.setMasterParent(this);
+        downloadCompleteDrawable.setMasterParent(this);
+        // setImageBitmap() above starts both drawables internally, and they loop
+        // forever (autoRepeat == 1), so park them right away. onDraw() restarts the
+        // arrow once the icon is actually visible; onAttachedToWindow() re-checks as
+        // well, because a GONE parent does not dispatch visibility changes while the
+        // view is still detached (mAttachInfo == null).
+        // NB: setImageBitmap() above starts both drawables - that is intentional and
+        // must be kept: parking them right here would drop the animation before its
+        // first frame is decoded (renderingBitmap == null), which made the arrow/
+        // finish icon render as nothing. They are parked in onAttachedToWindow()
+        // instead, where isShown() reflects the real visibility, and restarted by
+        // onDraw() once the icon becomes visible.
     }
 
     public void updateColors() {
@@ -116,8 +137,18 @@ public class DownloadProgressIcon extends View implements NotificationCenter.Not
             showCompletedIcon = false;
         }
         if (showCompletedIcon) {
+            if (!downloadCompleteDrawable.isRunning()) {
+                downloadCompleteDrawable.start();
+            }
             downloadCompleteImageReceiver.draw(canvas);
         } else {
+            // A non-running RLottieDrawable renders nothing, so the arrow would
+            // disappear; make sure it runs while this view is being drawn. onDraw()
+            // only runs while the icon is actually visible, so this cannot restart
+            // the animation while the icon is hidden.
+            if (!downloadDrawable.isRunning()) {
+                downloadDrawable.start();
+            }
             downloadImageReceiver.draw(canvas);
         }
 
@@ -142,6 +173,11 @@ public class DownloadProgressIcon extends View implements NotificationCenter.Not
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.onDownloadingFilesChanged);
         downloadImageReceiver.onAttachedToWindow();
         downloadCompleteImageReceiver.onAttachedToWindow();
+        // ImageReceiver.onAttachedToWindow() may start the drawables again; if this
+        // icon is hidden (its parent downloadsItem starts as GONE), park them.
+        if (!isShown()) {
+            stopDrawables();
+        }
     }
 
     @Override
@@ -151,6 +187,7 @@ public class DownloadProgressIcon extends View implements NotificationCenter.Not
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.onDownloadingFilesChanged);
         downloadImageReceiver.onDetachedFromWindow();
         downloadCompleteImageReceiver.onDetachedFromWindow();
+        stopDrawables();
     }
 
 
@@ -206,7 +243,15 @@ public class DownloadProgressIcon extends View implements NotificationCenter.Not
         }
 
         progressDt = (progress - currentProgress) * 16f / 150f;
-        invalidate();
+        // onDraw() calls this at the end of EVERY draw, so an unconditional invalidate()
+        // here makes the view redraw itself forever. Only keep redrawing while the
+        // animated value is still catching up; snap once it has effectively converged
+        // (float underflow would otherwise keep currentProgress != progress forever).
+        if (Math.abs(progress - currentProgress) > 1e-4f) {
+            invalidate();
+        } else if (currentProgress != progress) {
+            currentProgress = progress;
+        }
     }
 
     private void detachCurrentListeners() {
@@ -262,10 +307,35 @@ public class DownloadProgressIcon extends View implements NotificationCenter.Not
         }
     }
 
+    /**
+     * Fired when this view or any ancestor becomes (in)visible. The parent
+     * (downloadsItem) is toggled via FragmentFloatingButton.setAnimatedVisibility(),
+     * which flips both alpha and visibility, so this reliably fires when the icon
+     * gets hidden and lets us park the animations instead of letting them keep
+     * driving redraws on every frame.
+     */
+    @Override
+    protected void onVisibilityChanged(View changedView, int visibility) {
+        super.onVisibilityChanged(changedView, visibility);
+        if (visibility != View.VISIBLE || !isShown()) {
+            stopDrawables();
+        }
+    }
+
+    private void stopDrawables() {
+        if (downloadDrawable != null && downloadDrawable.isRunning()) {
+            downloadDrawable.stop();
+        }
+        if (downloadCompleteDrawable != null) {
+            downloadCompleteDrawable.stop();
+        }
+    }
+
     @Override
     public void setAlpha(float alpha) {
         if (alpha == 0) {
             wasDrawn = false;
+            stopDrawables();
         }
         super.setAlpha(alpha);
     }

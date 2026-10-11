@@ -77,6 +77,10 @@ public final class Choreographer60FpsContent implements Choreographer.FrameCallb
     /** Current tick in the repeating 60-tick cycle; also used for legacy 30fps drawables. */
     private int mCounter;
 
+    /** True while exactly one frame callback is registered with the Choreographer. */
+    private boolean mFrameCallbackPosted;
+
+
     // ── Public interface ──────────────────────────────────────────────────────
 
     /** Callback interface, mirrors {@link Choreographer.FrameCallback}. */
@@ -96,21 +100,25 @@ public final class Choreographer60FpsContent implements Choreographer.FrameCallb
     public void post(FrameCallback callback) {
         checkMainThread();
         mOneShot.add(callback);
+        ensurePosted();
     }
 
     public void postInvalidateDrawable(Drawable drawable) {
         checkMainThread();
         mDrawablesToInvalidate.add(drawable);
+        ensurePosted();
     }
 
     public void postInvalidateDrawable30fps(Drawable drawable) {
         checkMainThread();
         mDrawablesToInvalidate30fps.add(drawable);
+        ensurePosted();
     }
 
     public void postInvalidateView(View view) {
         checkMainThread();
         mViewsToInvalidate.add(view);
+        ensurePosted();
     }
 
     /**
@@ -139,6 +147,7 @@ public final class Choreographer60FpsContent implements Choreographer.FrameCallb
             group.runnableCallbacksOnce = new ReferenceList<>();
         }
         group.runnableCallbacksOnce.add(callback);
+        ensurePosted();
     }
 
 
@@ -156,6 +165,7 @@ public final class Choreographer60FpsContent implements Choreographer.FrameCallb
         fps = Math.max(1, Math.min(fps, TARGET_FPS));
         removeFrameCallback(callback); // remove from any existing group first
         getOrCreateGroup(fps).runnableCallbacks.add(callback);
+        ensurePosted();
     }
 
     /**
@@ -173,6 +183,7 @@ public final class Choreographer60FpsContent implements Choreographer.FrameCallb
         fps = Math.max(1, Math.min(fps, TARGET_FPS));
         removeFrameCallback(callback); // remove from any existing group first
         getOrCreateGroup(fps).callbacks.add(callback);
+        ensurePosted();
     }
 
     /**
@@ -224,12 +235,50 @@ public final class Choreographer60FpsContent implements Choreographer.FrameCallb
 
     // ── Private implementation ────────────────────────────────────────────────
 
+    /**
+     * Keeps exactly one frame callback registered with the Choreographer.
+     *
+     * <p>{@link #doFrame(long)} parks the loop as soon as nothing is subscribed,
+     * so an idle app stops waking up on every VSYNC. Every method that adds work
+     * must call this, otherwise a callback subscribed after the loop parked would
+     * never fire.
+     */
+    private void ensurePosted() {
+        if (!mFrameCallbackPosted) {
+            mFrameCallbackPosted = true;
+            mLastVsyncNs = 0; // re-align to the next VSYNC after a pause
+            mChoreographer.postFrameCallback(this);
+        }
+    }
+
+    /** Whether anything still needs per-frame updates. */
+    private boolean hasSubscribers() {
+        if (!mOneShot.isEmpty()
+                || !mViewsToInvalidate.isEmpty()
+                || !mDrawablesToInvalidate.isEmpty()
+                || !mDrawablesToInvalidate30fps.isEmpty()) {
+            return true;
+        }
+        for (int i = 0; i < mGroups.size(); i++) {
+            final CallbackGroup group = mGroups.valueAt(i);
+            if (!group.callbacks.isEmpty() || !group.runnableCallbacks.isEmpty()) {
+                return true;
+            }
+            if (group.runnableCallbacksOnce != null && !group.runnableCallbacksOnce.isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private Choreographer60FpsContent() {
-        mChoreographer.postFrameCallback(this);
+        ensurePosted();
     }
 
     @Override
     public void doFrame(long frameTimeNanos) {
+        mFrameCallbackPosted = false; // this frame has been consumed
+
         if (mLastVsyncNs == 0) {
             mLastVsyncNs = frameTimeNanos;
         } else {
@@ -242,7 +291,15 @@ public final class Choreographer60FpsContent implements Choreographer.FrameCallb
             }
         }
 
-        mChoreographer.postFrameCallback(this);
+        if (hasSubscribers()) {
+            // Re-arm directly instead of going through ensurePosted(): that helper zeroes
+            // mLastVsyncNs to re-align after a pause, but here we are merely continuing
+            // the loop. Zeroing it every frame made doFrame() take the "first frame"
+            // branch forever, so mAccumulatedNs never reached FRAME_INTERVAL_NS and
+            // dispatchFrame() never ran - every registered callback was silently dead.
+            mFrameCallbackPosted = true;
+            mChoreographer.postFrameCallback(this);
+        }
     }
 
     private void dispatchFrame(long frameTimeNanos) {

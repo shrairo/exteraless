@@ -261,8 +261,10 @@ android {
         release {
             debuggable = false
             jniDebuggable = false
-            minifyEnabled = true
-            shrinkResources = true
+            // Pass -PfastBuild to skip R8 + resource shrinking for quick iteration.
+            // Without it the behaviour is exactly as before.
+            minifyEnabled = !project.hasProperty('fastBuild')
+            shrinkResources = !project.hasProperty('fastBuild')
             multiDexEnabled = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             matchingFallbacks = ['release', 'staging', 'debug']
@@ -311,7 +313,14 @@ def chaquopyRuntimeTasks = chaquopyAbis.collect { String abi ->
         }).withPathSensitivity(PathSensitivity.RELATIVE)
         inputs.files(targetZip).withPathSensitivity(PathSensitivity.NAME_ONLY)
         outputs.dir(outputDir)
-        commandLine 'bash', new File(chaquopySourceDir, 'exteraless/build.sh').path
+        def bashCmd = 'bash'
+        if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+            def gitBash = new File('C:/Program Files/Git/bin/bash.exe')
+            if (gitBash.exists()) {
+                bashCmd = gitBash.path
+            }
+        }
+        commandLine bashCmd, new File(chaquopySourceDir, 'exteraless/build.sh').path.replace('\\', '/')
         environment('ABI', abi)
         environment('OUT', outputDir.path)
         environment('WORKSPACE', layout.buildDirectory.dir('chaquopy/work').get().asFile.path)

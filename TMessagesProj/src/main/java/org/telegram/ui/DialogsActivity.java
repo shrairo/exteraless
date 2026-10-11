@@ -998,9 +998,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
         @Override
         protected void dispatchDraw(Canvas canvas) {
-            if (Build.VERSION.SDK_INT >= 31 && scrollableViewNoiseSuppressor != null) {
-                blur3_InvalidateBlur();
-            }
+            // blur3_InvalidateBlur() should not be called continuously inside dispatchDraw
+            // as it causes an infinite re-render loop on API 31+ with RenderNode blurring.
 
             if (invalidateScrollY && (rightSlidingDialogContainer == null || !rightSlidingDialogContainer.hasFragment()) && progressToActionMode == 0) {
                 invalidateScrollY = false;
@@ -2400,8 +2399,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             RecyclerListView anchorListView = animationSupportListView == null ? this.animationSupportListView : this;
             DialogCell anchorView = null;
             DialogCell selectedDialogView = null;
+            // Apply the field first: the code below dereferences anchorView (which can
+            // legitimately be null), and if it throws, the field would never be cleared,
+            // leaving dispatchDraw() to invalidate() every single frame forever.
+            this.animationSupportListView = animationSupportListView;
             if (anchorListView == null) {
-                this.animationSupportListView = animationSupportListView;
                 return;
             }
             int maxTop = Integer.MAX_VALUE;
@@ -2425,7 +2427,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (selectedDialogView != null && getAdapter().getItemCount() * dp(70) > getMeasuredHeight() && (anchorView.getTop() - getPaddingTop()) > (getMeasuredHeight() - getPaddingTop()) / 2f) {
                 anchorView = selectedDialogView;
             }
-            this.animationSupportListView = animationSupportListView;
 
             if (anchorView != null) {
                 if (animationSupportListView != null) {
@@ -4250,32 +4251,51 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         iBlur3FactoryBlur.setSourceRootView(viewPositionWatcher, contentView);
 
         final PointF tmpPoint = new PointF();
-        iBlur3Capture = (canvas, position) -> {
-            final int searchViewAlpha = searchViewPager != null ? (int) (searchViewPager.getAlpha() * 255) : 0;
+        final RectF tmpChildPos = new RectF();
+        final RectF tmpCaptureRect = new RectF();
+        iBlur3Capture = new IBlur3Capture() {
+            @Override
+            public void capture(Canvas canvas, RectF position) {
+                final int searchViewAlpha = searchViewPager != null ? (int) (searchViewPager.getAlpha() * 255) : 0;
 
-            for (ViewPage viewPage : viewPages) {
-                if (viewPage != null && viewPage.getVisibility() == View.VISIBLE && viewPage.getAlpha() > 0f) {
-                    float rp = getRightSlidingProgress();
-                    if (viewPage.animationSupportListView != null && rp > 0) {
-                        if (!ViewPositionWatcher.computeCoordinatesInParent(viewPage.listView, contentView, tmpPoint)) {
-                            return;
+                for (ViewPage viewPage : viewPages) {
+                    if (viewPage != null && viewPage.getVisibility() == View.VISIBLE && viewPage.getAlpha() > 0f) {
+                        float rp = getRightSlidingProgress();
+                        if (viewPage.animationSupportListView != null && rp > 0) {
+                            if (!ViewPositionWatcher.computeCoordinatesInParent(viewPage.listView, contentView, tmpPoint)) {
+                                return;
+                            }
+
+                            canvas.save();
+                            canvas.clipRect(position);
+                            canvas.translate(tmpPoint.x, tmpPoint.y);
+                            viewPage.listView.dispatchDraw(canvas);
+                            canvas.restore();
+                        } else {
+                            Blur3Utils.captureRelativeParent(viewPage.listView, canvas, position, viewPage.listView, contentView, 255 - searchViewAlpha);
                         }
+                    }
+                }
+                if (searchViewPager != null && searchViewPager.getVisibility() == View.VISIBLE && searchViewPager.getAlpha() > 0f) {
+                    Blur3Utils.captureRelativeParent(searchViewPager, canvas, position, searchViewPager, contentView, searchViewAlpha);
+                }
+            }
 
-                        canvas.save();
-                        canvas.clipRect(position);
-                        canvas.translate(tmpPoint.x, tmpPoint.y);
-                        viewPage.listView.dispatchDraw(canvas);
-                        canvas.restore();
-                    } else {
-                        Blur3Utils.captureRelativeParent(viewPage.listView, canvas, position, viewPage.listView, contentView, 255 - searchViewAlpha);
+            @Override
+            public void captureCalculateHash(IBlur3Hash builder, RectF position) {
+                for (ViewPage viewPage : viewPages) {
+                    if (viewPage != null && viewPage.getVisibility() == View.VISIBLE && viewPage.getAlpha() > 0f && viewPage.listView != null) {
+                        if (ViewPositionWatcher.computeRectInParent(viewPage.listView, contentView, tmpChildPos)) {
+                            tmpCaptureRect.set(position);
+                            tmpCaptureRect.offset(-tmpChildPos.left, -tmpChildPos.top);
+                            viewPage.listView.captureCalculateHash(builder, tmpCaptureRect);
+                        } else {
+                            builder.unsupported();
+                        }
                     }
                 }
             }
-            if (searchViewPager != null && searchViewPager.getVisibility() == View.VISIBLE && searchViewPager.getAlpha() > 0f) {
-                Blur3Utils.captureRelativeParent(searchViewPager, canvas, position, searchViewPager, contentView, searchViewAlpha);
-            }
         };
-
         int pagesCount = folderId == 0 && communityId == 0 && (initialDialogsType == DIALOGS_TYPE_DEFAULT && !onlySelect || initialDialogsType == DIALOGS_TYPE_FORWARD) ? 2 : 1;
         viewPages = new ViewPage[pagesCount];
         for (int a = 0; a < pagesCount; a++) {
