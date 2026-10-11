@@ -45,5 +45,5 @@
 	url = https://github.com/TelegramMessenger/libprisma.git
 [submodule "TMessagesProj/chaquopy"]
 	path = TMessagesProj/chaquopy
-	url = https://github.com/exteraless/chaquopy.git
-	branch = exteraless
+	url = https://github.com/shrairo/chaquopy.git
+	branch = windows-build-fixes
