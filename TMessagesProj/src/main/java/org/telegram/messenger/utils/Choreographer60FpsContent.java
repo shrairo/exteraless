@@ -80,6 +80,13 @@ public final class Choreographer60FpsContent implements Choreographer.FrameCallb
     /** True while exactly one frame callback is registered with the Choreographer. */
     private boolean mFrameCallbackPosted;
 
+    /**
+     * Set when a callback is removed. Empty fps groups are pruned at the end of the
+     * next frame instead of immediately: removeFrameCallback() is routinely called
+     * from inside dispatchFrame()'s iteration (a callback unsubscribing itself), and
+     * mutating mGroups while it is being iterated corrupts the loop.
+     */
+    private boolean mGroupsDirty;
 
     // ── Public interface ──────────────────────────────────────────────────────
 
@@ -198,7 +205,25 @@ public final class Choreographer60FpsContent implements Choreographer.FrameCallb
         for (int i = 0; i < mGroups.size(); i++) {
             CallbackGroup group = mGroups.valueAt(i);
             if (group.runnableCallbacks.remove(callback)) {
+                mGroupsDirty = true;
                 return;
+            }
+        }
+    }
+
+    /**
+     * Drops fps groups that no longer hold any callback. Called once per frame so the
+     * per-frame cost of hasSubscribers()/dispatchFrame() cannot grow without bound as
+     * animations come and go with different frame rates.
+     */
+    private void pruneEmptyGroups() {
+        if (!mGroupsDirty) {
+            return;
+        }
+        mGroupsDirty = false;
+        for (int i = mGroups.size() - 1; i >= 0; i--) {
+            if (mGroups.valueAt(i).isEmpty()) {
+                mGroups.removeAt(i);
             }
         }
     }
@@ -211,6 +236,7 @@ public final class Choreographer60FpsContent implements Choreographer.FrameCallb
         for (int i = 0; i < mGroups.size(); i++) {
             CallbackGroup group = mGroups.valueAt(i);
             if (group.runnableCallbacksOnce != null && group.runnableCallbacksOnce.remove(callback)) {
+                mGroupsDirty = true;
                 return;
             }
         }
@@ -228,6 +254,7 @@ public final class Choreographer60FpsContent implements Choreographer.FrameCallb
         for (int i = 0; i < mGroups.size(); i++) {
             CallbackGroup group = mGroups.valueAt(i);
             if (group.callbacks.remove(callback)) {
+                mGroupsDirty = true;
                 return;
             }
         }
@@ -279,6 +306,8 @@ public final class Choreographer60FpsContent implements Choreographer.FrameCallb
     public void doFrame(long frameTimeNanos) {
         mFrameCallbackPosted = false; // this frame has been consumed
 
+
+
         if (mLastVsyncNs == 0) {
             mLastVsyncNs = frameTimeNanos;
         } else {
@@ -292,14 +321,11 @@ public final class Choreographer60FpsContent implements Choreographer.FrameCallb
         }
 
         if (hasSubscribers()) {
-            // Re-arm directly instead of going through ensurePosted(): that helper zeroes
-            // mLastVsyncNs to re-align after a pause, but here we are merely continuing
-            // the loop. Zeroing it every frame made doFrame() take the "first frame"
-            // branch forever, so mAccumulatedNs never reached FRAME_INTERVAL_NS and
-            // dispatchFrame() never ran - every registered callback was silently dead.
             mFrameCallbackPosted = true;
             mChoreographer.postFrameCallback(this);
         }
+
+        pruneEmptyGroups();
     }
 
     private void dispatchFrame(long frameTimeNanos) {
@@ -440,6 +466,11 @@ public final class Choreographer60FpsContent implements Choreographer.FrameCallb
 
         CallbackGroup(long frameMask) {
             this.frameMask = frameMask;
+        }
+        boolean isEmpty() {
+            return callbacks.isEmpty()
+                && runnableCallbacks.isEmpty()
+                && (runnableCallbacksOnce == null || runnableCallbacksOnce.isEmpty());
         }
     }
 
