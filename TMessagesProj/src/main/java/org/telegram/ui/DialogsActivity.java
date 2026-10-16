@@ -7347,8 +7347,13 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             Activity activity = getParentActivity();
             if (activity != null) {
                 checkPermission = false;
+                boolean askedMediaOnce = MessagesController.getGlobalNotificationsSettings().getBoolean("media_permission_requested_once", false);
                 boolean hasNotContactsPermission = activity.checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED;
-                boolean hasNotStoragePermission = (Build.VERSION.SDK_INT <= 28 || BuildVars.NO_SCOPED_STORAGE) && activity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED;
+                boolean hasNotStoragePermission = !askedMediaOnce && (
+                    Build.VERSION.SDK_INT >= 34 ? (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED || activity.checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) :
+                    Build.VERSION.SDK_INT >= 33 ? (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED || activity.checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) :
+                    (activity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
+                );
                 boolean hasNotNotificationsPermission = Build.VERSION.SDK_INT >= 33 && activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED;
                 AndroidUtilities.runOnUIThread(() -> {
                     if (getParentActivity() == null) {
@@ -10727,19 +10732,33 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             permissons.add(Manifest.permission.WRITE_CONTACTS);
             permissons.add(Manifest.permission.GET_ACCOUNTS);
         }
-        if (Build.VERSION.SDK_INT >= 33) {
-            if (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
-                permissons.add(Manifest.permission.READ_MEDIA_IMAGES);
-            }
-            if (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) {
-                permissons.add(Manifest.permission.READ_MEDIA_VIDEO);
-            }
-            if (activity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+        boolean askedMediaOnce = MessagesController.getGlobalNotificationsSettings().getBoolean("media_permission_requested_once", false);
+        if (!askedMediaOnce) {
+            MessagesController.getGlobalNotificationsSettings().edit().putBoolean("media_permission_requested_once", true).apply();
+            if (Build.VERSION.SDK_INT >= 34) {
+                if (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
+                    permissons.add(Manifest.permission.READ_MEDIA_IMAGES);
+                }
+                if (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) {
+                    permissons.add(Manifest.permission.READ_MEDIA_VIDEO);
+                }
+                if (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) != PackageManager.PERMISSION_GRANTED) {
+                    permissons.add(Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED);
+                }
+            } else if (Build.VERSION.SDK_INT >= 33) {
+                if (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
+                    permissons.add(Manifest.permission.READ_MEDIA_IMAGES);
+                }
+                if (activity.checkSelfPermission(Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) {
+                    permissons.add(Manifest.permission.READ_MEDIA_VIDEO);
+                }
+                if (activity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                    permissons.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                }
+            } else if (activity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                permissons.add(Manifest.permission.READ_EXTERNAL_STORAGE);
                 permissons.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
-        } else if ((Build.VERSION.SDK_INT <= 28 || BuildVars.NO_SCOPED_STORAGE) && activity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            permissons.add(Manifest.permission.READ_EXTERNAL_STORAGE);
-            permissons.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             permissons.add(Manifest.permission.POST_NOTIFICATIONS);
