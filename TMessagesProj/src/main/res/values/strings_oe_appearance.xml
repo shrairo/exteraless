@@ -16,6 +16,7 @@
     <string name="OEAppearanceForceSnow">Force Snowflakes</string>
     <string name="OEAppearanceHideActionBarStatus">Hide Status</string>
     <string name="OEAppearanceCenterTitle">Center Title</string>
+    <string name="OEAppearanceCenterTitleNoAvoid">Don\'t Avoid Menu Items</string>
     <string name="OEAppearanceStories">Stories</string>
     <string name="OEAppearanceStoriesShow">Show</string>
     <string name="OEAppearanceStoriesHideHeader">Hide from header</string>

@@ -11,6 +11,7 @@
     <string name="OEAppearanceChatList">Список чатов</string>
     <string name="OEAppearanceForceSnow">Всегда показывать снежинки</string>
     <string name="OEAppearanceCenterTitle">Заголовок по центру</string>
+    <string name="OEAppearanceCenterTitleNoAvoid">Не сдвигать заголовок</string>
     <string name="OEAppearanceStories">Истории</string>
     <string name="OEAppearanceStoriesShow">Показывать</string>
     <string name="OEAppearanceStoriesHideHeader">Скрыть из шапки</string>

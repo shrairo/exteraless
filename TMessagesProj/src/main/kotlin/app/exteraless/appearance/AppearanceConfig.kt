@@ -132,6 +132,21 @@ object AppearanceConfig {
         NaConfig.centerActionBarTitleType.setConfigInt(if (value) 1 else 0)
     }
 
+    /**
+     * Не сдвигать центрированный заголовок, когда в ActionBar появляются пункты
+     * меню (кнопка поиска и т.п.). true — заголовок всегда по центру экрана;
+     * false — прежнее поведение exteraGram: центр между «назад» и меню.
+     */
+    @JvmField
+    val centerTitleNoAvoid =
+        addConfig("OEAppearanceCenterTitleNoAvoid", ConfigItem.configTypeBool, true)
+
+    @JvmStatic
+    fun centerTitleNoAvoid(): Boolean {
+        ensureLoaded()
+        return centerTitleNoAvoid.Bool()
+    }
+
     /** «Gooey»-анимация аватарки при оттягивании шапки профиля. Дефолт true, как в exteraGram. */
     @JvmField
     val gooeyAvatarAnimation =

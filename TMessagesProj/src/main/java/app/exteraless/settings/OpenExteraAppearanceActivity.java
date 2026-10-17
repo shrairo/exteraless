@@ -108,6 +108,7 @@ public class OpenExteraAppearanceActivity extends BaseNekoSettingsActivity {
     private int chatListPreviewRow;
     private int forceSnowRow;
     private int centerTitleRow;
+    private int centerTitleNoAvoidRow;
     // Material Design 3: сворачиваемая группа и пять вложенных стилей.
     private int md3GroupRow;
     private int md3LoadingRow;
@@ -180,6 +181,7 @@ public class OpenExteraAppearanceActivity extends BaseNekoSettingsActivity {
         chatListPreviewRow = addRow("chatListPreview");
         forceSnowRow = addRow("forceSnow");
         centerTitleRow = addRow("centerTitle");
+        centerTitleNoAvoidRow = addRow("centerTitleNoAvoid");
         senderMiniAvatarsRow = addRow("senderMiniAvatars");
         titleTextRow = addRow("titleText");
         chatListDividerRow = addRow();
@@ -688,6 +690,13 @@ public class OpenExteraAppearanceActivity extends BaseNekoSettingsActivity {
             }
             rebuildAll();
             return;
+        } else if (position == centerTitleNoAvoidRow) {
+            boolean enabled = AppearanceConfig.centerTitleNoAvoid.toggleConfigBool();
+            if (view instanceof org.telegram.ui.Cells.TextCheckCell) {
+                ((org.telegram.ui.Cells.TextCheckCell) view).setChecked(enabled);
+            }
+            rebuildAll();
+            return;
         } else if (position == titleTextRow) {
             Runnable onTitleTextChanged = () -> {
                 if (chatListPreviewCell != null) {
@@ -905,6 +914,9 @@ public class OpenExteraAppearanceActivity extends BaseNekoSettingsActivity {
                     if (position == centerTitleRow) {
                         cell.setTextAndCheck(getString(R.string.OEAppearanceCenterTitle),
                                 AppearanceConfig.INSTANCE.centerTitle(), true);
+                    } else if (position == centerTitleNoAvoidRow) {
+                        cell.setTextAndCheck(getString(R.string.OEAppearanceCenterTitleNoAvoid),
+                                AppearanceConfig.centerTitleNoAvoid(), true);
                     } else if (position == useSystemFontsRow) {
                         cell.setTextAndCheck(getString(R.string.OEAppearanceUseSystemFonts), NekoConfig.typeface.Bool(), true);
                     } else if (position == gooeyAvatarRow) {
