@@ -81,6 +81,7 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
     private int voiceEnhancementsRow;
     private int enhancedVideoBitrateRow;
     private int sensitiveContentRow;
+    private int showWalletRow;
     private int experimentalDividerRow;
     private boolean sensitiveEnabled;
     private boolean sensitiveCanChange;
@@ -144,6 +145,7 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
         voiceEnhancementsRow = -1;
         enhancedVideoBitrateRow = -1;
         sensitiveContentRow = addRow("sensitiveDisableFiltering", "SensitiveDisableFiltering");
+        showWalletRow = addRow("showWallet");
         experimentalDividerRow = addRow();
 
         backupHeaderRow = addRow("backupHeader");
@@ -227,6 +229,14 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
             toggleCheck(view, NaConfig.INSTANCE.getEnhancedVideoBitrate());
         } else if (position == sensitiveContentRow) {
             toggleSensitiveContent(view);
+        } else if (position == showWalletRow) {
+            boolean enabled = GeneralConfig.showWallet.toggleConfigBool();
+            if (view instanceof TextCheckCell) {
+                ((TextCheckCell) view).setChecked(enabled);
+            }
+            if (getParentLayout() != null) {
+                getParentLayout().rebuildAllFragmentViews(false, false);
+            }
         } else if (position == exportEtgRow) {
             exportEtgSettings();
         } else if (position == importEtgRow) {
@@ -547,6 +557,8 @@ public class OpenExteraOtherActivity extends BaseNekoSettingsActivity {
                             cell.setTextAndValueAndCheck(getString(R.string.SensitiveDisableFiltering),
                                     getString(R.string.SensitiveAbout), sensitiveEnabled, true, false);
                             cell.setEnabled(sensitiveCanChange, null);
+                        } else if (position == showWalletRow) {
+                            cell.setTextAndCheck(getString(R.string.OEGeneralShowWallet), GeneralConfig.showWallet(), true);
                         }
                     }
                     break;

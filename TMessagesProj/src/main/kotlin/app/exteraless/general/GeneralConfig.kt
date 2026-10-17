@@ -67,6 +67,18 @@ object GeneralConfig {
         return showNagramSettings.Bool()
     }
 
+    /**
+     * Показывать строку «Wallet» (资金) в настройках. Выключено — пункт скрыт.
+     */
+    @JvmField
+    val showWallet = addConfig("OEGeneralShowWallet", ConfigItem.configTypeBool, true)
+
+    @JvmStatic
+    fun showWallet(): Boolean {
+        loadConfig(false)
+        return showWallet.Bool()
+    }
+
     @JvmField
     val crashReports = addConfig("OEGeneralCrashReports", ConfigItem.configTypeBool, false)
 
