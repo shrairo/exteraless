@@ -915,4 +915,16 @@ public class ApplicationLoader extends Application implements CameraXConfig.Prov
             System.exit(10);
         });
     }
+
+    @Override
+    public void onLowMemory() {
+        super.onLowMemory();
+        ImageLoader.getInstance().clearMemory();
+    }
+
+    @Override
+    public void onTrimMemory(int level) {
+        super.onTrimMemory(level);
+        ImageLoader.getInstance().trimMemory(level);
+    }
 }

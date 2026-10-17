@@ -2844,6 +2844,24 @@ public class ImageLoader {
         lottieMemCache.evictAll();
     }
 
+    public void trimMemory(int level) {
+        if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_COMPLETE) {
+            clearMemory();
+        } else if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_MODERATE || level >= android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
+            smallImagesMemCache.trimToSize(smallImagesMemCache.maxSize() / 2);
+            memCache.trimToSize(memCache.maxSize() / 2);
+            lottieMemCache.trimToSize(lottieMemCache.maxSize() / 2);
+        } else if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_BACKGROUND || level >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL) {
+            smallImagesMemCache.trimToSize((int) (smallImagesMemCache.maxSize() * 0.75f));
+            memCache.trimToSize((int) (memCache.maxSize() * 0.75f));
+            lottieMemCache.trimToSize((int) (lottieMemCache.maxSize() * 0.75f));
+        }
+        try {
+            Utilities.trimNativeMemory();
+        } catch (Throwable ignore) {
+        }
+    }
+
     private void removeFromWaitingForThumb(int TAG, ImageReceiver imageReceiver) {
         String location = waitingForQualityThumbByTag.get(TAG);
         if (location != null) {

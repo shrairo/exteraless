@@ -289,3 +289,20 @@ JNIEXPORT void Java_org_telegram_messenger_Utilities_clearDir(JNIEnv *env, jclas
     listdir(fileName, 1, docType, time, subdirs);
     (*env)->ReleaseStringUTFChars(env, path, fileName);
 }
+
+#include <dlfcn.h>
+
+JNIEXPORT void Java_org_telegram_messenger_Utilities_trimNativeMemory(JNIEnv *env, jclass class) {
+#if defined(__ANDROID__)
+    typedef int (*malloc_trim_fn)(size_t);
+    static malloc_trim_fn fn = NULL;
+    static int resolved = 0;
+    if (!resolved) {
+        fn = (malloc_trim_fn) dlsym(RTLD_DEFAULT, "malloc_trim");
+        resolved = 1;
+    }
+    if (fn) {
+        fn(0);
+    }
+#endif
+}

@@ -240,6 +240,10 @@ public class LruCache<T> {
         trimToSize(-1, null); // -1 will evict 0-sized elements
     }
 
+    public final void trimToSize(int maxSize) {
+        trimToSize(maxSize, null);
+    }
+
     /**
      * For caches that do not override {@link #sizeOf}, this returns the number
      * of entries in the cache. For all other caches, this returns the sum of

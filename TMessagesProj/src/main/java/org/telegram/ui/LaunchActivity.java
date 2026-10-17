@@ -121,6 +121,7 @@ import org.telegram.messenger.FingerprintController;
 import org.telegram.messenger.FlagSecureReason;
 import org.telegram.messenger.GenericProvider;
 import org.telegram.messenger.GiftAuctionController;
+import org.telegram.messenger.ImageLoader;
 import org.telegram.messenger.LiteMode;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.LocationController;
@@ -8623,6 +8624,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
     @Override
     public void onLowMemory() {
         super.onLowMemory();
+        ImageLoader.getInstance().clearMemory();
         if (actionBarLayout != null) {
             actionBarLayout.onLowMemory();
             if (AndroidUtilities.isTablet()) {
@@ -8634,6 +8636,12 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 }
             }
         }
+    }
+
+    @Override
+    public void onTrimMemory(int level) {
+        super.onTrimMemory(level);
+        ImageLoader.getInstance().trimMemory(level);
     }
 
     @Override

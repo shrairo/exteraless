@@ -7089,6 +7089,8 @@ public class MessageObject {
 
     public void resetLayout() {
         layoutCreated = false;
+        textLayoutBlocks = null;
+        caption = null;
     }
 
     public String getMimeType() {

@@ -3854,6 +3854,8 @@ public class ChatActivity extends BaseFragment implements
             AndroidUtilities.removeFromParent(starReactionsOverlay);
             starReactionsOverlay = null;
         }
+        ImageLoader.getInstance().trimMemory(android.content.ComponentCallbacks2.TRIM_MEMORY_MODERATE);
+        AnimatedEmojiDrawable.dropGlobalEmojiCache();
     }
 
     private ArrayList<MessageObject> getSelectedMessages() {
@@ -32084,6 +32086,8 @@ public class ChatActivity extends BaseFragment implements
         if (AvatarPreviewer.hasVisibleInstance()) {
             AvatarPreviewer.getInstance().close();
         }
+        ImageLoader.getInstance().trimMemory(android.content.ComponentCallbacks2.TRIM_MEMORY_MODERATE);
+        AnimatedEmojiDrawable.dropGlobalEmojiCache();
     }
 
     public void setResolvedChatLink(TL_account.resolvedBusinessChatLinks resolvedChatLink) {

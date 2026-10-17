@@ -90,7 +90,7 @@ public class Utilities {
     public static native int averageBitmapColor(Bitmap bitmap, int left, int top, int right, int bottom);
     public static native boolean drawReplyLinePattern(Bitmap bitmap, int color1, int color2, int color3, int barHeight, boolean hasColor3);
     public static native void setupNativeCrashesListener(String path);
-
+    public static native void trimNativeMemory();
     public static Bitmap stackBlurBitmapMax(Bitmap bitmap) {
         return stackBlurBitmapMax(bitmap, false);
     }
