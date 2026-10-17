@@ -68,15 +68,16 @@ object GeneralConfig {
     }
 
     /**
-     * Показывать строку «Wallet» (资金) в настройках. Выключено — пункт скрыт.
+     * Отключить Telegram Wallet: скрыть строку «Wallet» в настройках и пункт
+     * в главном меню.
      */
     @JvmField
-    val showWallet = addConfig("OEGeneralShowWallet", ConfigItem.configTypeBool, true)
+    val disableWallet = addConfig("OEGeneralDisableWallet", ConfigItem.configTypeBool, false)
 
     @JvmStatic
-    fun showWallet(): Boolean {
+    fun disableWallet(): Boolean {
         loadConfig(false)
-        return showWallet.Bool()
+        return disableWallet.Bool()
     }
 
     @JvmField

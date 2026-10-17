@@ -75,7 +75,7 @@
     <string name="OEGeneralSavePathInfoFolder">Файлы сохраняются в Downloads/%1$s. Только буквы, цифры, пробел, точка, дефис и подчёркивание.</string>
     <string name="OEGeneralNagramHeader">Дополнительно</string>
     <string name="OEGeneralNagramSettings">Настройки NagramX</string>
-    <string name="OEGeneralShowWallet">Показывать кошелёк</string>
+    <string name="OEGeneralDisableWallet">Отключить Telegram Wallet</string>
     <string name="OEGeneralAyuMoments">AyuMoments</string>
     <string name="OEGeneralAyuMomentsInfo">Сохранение удалённых и изменённых сообщений, режим призрака и regex-фильтры. Функции работают, пока включены, — даже если не открывать этот экран.</string>
     <string name="OEGeneralAyuMomentsDisableAll">Отключить все функции AyuMoments</string>

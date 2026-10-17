@@ -336,7 +336,7 @@ public final class MainMenuHelper {
 
     public static boolean isWalletAvailable(int currentAccount) {
         try {
-            return app.exteraless.general.GeneralConfig.showWallet()
+            return !app.exteraless.general.GeneralConfig.disableWallet()
                     && MessagesController.getInstance(currentAccount).config.walletAvailable.get();
         } catch (Exception e) {
             return false;

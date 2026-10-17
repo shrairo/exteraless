@@ -787,8 +787,8 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
         // шестерёнки, акцент фирменного цвета на обе точки градиента.
         items.add(SettingCell.Factory.of(-1, 0xFF993C38, 0xFF993C38, R.drawable.exteraless_icon_tile, getString(R.string.OpenExteraPreferences), getString(R.string.OpenExteraInfo)));
         items.add(UItem.asShadow(null));
-        final boolean showWallet = app.exteraless.general.GeneralConfig.showWallet();
-        final boolean walletAbove = showWallet && getConnectionsManager().getCurrentTime() - 1791538462 < 4 * 7 * 24 * 60 * 60;
+        final boolean walletEnabled = !app.exteraless.general.GeneralConfig.disableWallet();
+        final boolean walletAbove = walletEnabled && getConnectionsManager().getCurrentTime() - 1791538462 < 4 * 7 * 24 * 60 * 60;
         if (walletAbove && getMessagesController().config.walletAvailable.get()) {
             final GramWallet wallet = GramWallet.getInstance(currentAccount);
             items.add(SettingCell.Factory.of(25, 0, 0, Theme.isCurrentThemeDark() ? R.drawable.settings_wallet_dark : R.drawable.settings_wallet, TextCell.applyNewSpanTimed(getString(R.string.WalletAttachMoney), 1790679020), null, wallet.getBalance() > 0 ? GramWallet.formatGrams(wallet.getBalance()) : null));
@@ -810,7 +810,7 @@ public class SettingsActivity extends BaseFragment implements NotificationCenter
 
         boolean hidePremium = NaConfig.INSTANCE.getHidePremiumSection().Bool();
         boolean hideHelp = NaConfig.INSTANCE.getHideHelpSection().Bool();
-        final boolean walletBelow = showWallet && !walletAbove && getMessagesController().config.walletAvailable.get();
+        final boolean walletBelow = walletEnabled && !walletAbove && getMessagesController().config.walletAvailable.get();
 
         if (walletBelow || !(hidePremium && hideHelp)) {
             items.add(UItem.asShadow(null));
