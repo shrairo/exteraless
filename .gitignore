@@ -19,6 +19,9 @@ TMessagesProj/jni/ffmpeg/build_android
 __pycache__/
 *.pyc
 
+# Кэш сборки Chaquopy (пересоздаётся)
+TMessagesProj/chaquopy-build/
+
 # JVM crash dumps
 hs_err_pid*.log
 replay_pid*.log
