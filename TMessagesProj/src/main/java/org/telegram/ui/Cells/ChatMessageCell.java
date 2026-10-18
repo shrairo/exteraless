@@ -315,6 +315,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         captionLayout = null;
         prevCaptionLayout = null;
         explanationLayout = null;
+        currentMessageObject = null;
     }
     private final static int TIME_APPEAR_MS = 200;
     private final static int UPLOADING_ALLOWABLE_ERROR = 1024 * 1024;
