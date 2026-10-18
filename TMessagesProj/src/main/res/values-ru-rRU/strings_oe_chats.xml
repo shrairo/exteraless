@@ -164,4 +164,5 @@
     <string name="OEChatsMenusHeader">Меню</string>
     <string name="OEChatsPlaybackHeader">Воспроизведение</string>
     <string name="OEChatsVoiceHeader">Голосовые сообщения</string>
+    <string name="SaveAllFiles">Сохранить все (%1$d файлов)</string>
 </resources>

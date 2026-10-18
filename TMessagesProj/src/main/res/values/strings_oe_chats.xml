@@ -167,4 +167,5 @@
     <string name="OEChatsMenusHeader">Menus</string>
     <string name="OEChatsPlaybackHeader">Playback</string>
     <string name="OEChatsVoiceHeader">Voice Messages</string>
+    <string name="SaveAllFiles">Save all (%1$d files)</string>
 </resources>

@@ -36077,22 +36077,59 @@ public class ChatActivity extends BaseFragment implements
                         }
                     });
                 } else if (isMusic || isDocument) {
-                    ArrayList<MessageObject> messageObjects;
-                    if (selectedObjectGroup != null) {
-                        messageObjects = new ArrayList<>(selectedObjectGroup.messages);
+                    if (selectedObjectGroup != null && selectedObjectGroup.messages.size() > 1) {
+                        final ArrayList<MessageObject> groupMessages = new ArrayList<>(selectedObjectGroup.messages);
+                        final boolean isMusicFinal = isMusic;
+                        final int totalFiles = groupMessages.size();
+                        CharSequence[] items = new CharSequence[totalFiles + 1];
+                        items[0] = LocaleController.formatString("SaveAllFiles", R.string.SaveAllFiles, totalFiles);
+                        for (int i = 0; i < totalFiles; i++) {
+                            MessageObject msg = groupMessages.get(i);
+                            String name = FileLoader.getDocumentFileName(msg.getDocument());
+                            if (TextUtils.isEmpty(name)) {
+                                name = msg.getFileName();
+                            }
+                            long size = msg.getDocument() != null ? msg.getDocument().size : 0;
+                            if (size > 0) {
+                                items[i + 1] = name + " (" + AndroidUtilities.formatFileSize(size) + ")";
+                            } else {
+                                items[i + 1] = name;
+                            }
+                        }
+                        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), themeDelegate);
+                        builder.setTitle(LocaleController.getString(isMusic ? R.string.SaveToMusic : R.string.SaveToDownloads));
+                        builder.setItems(items, (dialog, which) -> {
+                            final ArrayList<MessageObject> targets = new ArrayList<>();
+                            if (which == 0) {
+                                targets.addAll(groupMessages);
+                            } else {
+                                targets.add(groupMessages.get(which - 1));
+                            }
+                            final boolean targetsIsMusic = which == 0 ? isMusicFinal : targets.get(0).isMusic();
+                            MediaController.saveFilesFromMessages(getParentActivity(), getAccountInstance(), targets, (count) -> {
+                                if (getParentActivity() == null || fragmentView == null) {
+                                    return;
+                                }
+                                if (count > 0) {
+                                    BulletinFactory.of(ChatActivity.this).createDownloadBulletin(targetsIsMusic ? BulletinFactory.FileType.AUDIOS : BulletinFactory.FileType.UNKNOWNS, count, themeDelegate).show();
+                                }
+                            });
+                        });
+                        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+                        showDialog(builder.create());
                     } else {
-                        messageObjects = new ArrayList<>();
+                        ArrayList<MessageObject> messageObjects = new ArrayList<>();
                         messageObjects.add(selectedObject);
+                        final boolean isMusicFinal = isMusic;
+                        MediaController.saveFilesFromMessages(getParentActivity(), getAccountInstance(), messageObjects, (count) -> {
+                            if (getParentActivity() == null || fragmentView == null) {
+                                return;
+                            }
+                            if (count > 0) {
+                                BulletinFactory.of(this).createDownloadBulletin(isMusicFinal ? BulletinFactory.FileType.AUDIOS : BulletinFactory.FileType.UNKNOWNS, count, themeDelegate).show();
+                            }
+                        });
                     }
-                    final boolean isMusicFinal = isMusic;
-                    MediaController.saveFilesFromMessages(getParentActivity(), getAccountInstance(), messageObjects, (count) -> {
-                        if (getParentActivity() == null || fragmentView == null) {
-                            return;
-                        }
-                        if (count > 0) {
-                            BulletinFactory.of(this).createDownloadBulletin(isMusicFinal ? BulletinFactory.FileType.AUDIOS : BulletinFactory.FileType.UNKNOWNS, count, themeDelegate).show();
-                        }
-                    });
                 } else if (selectedObject.isLivePhoto()) {
                     final ArrayList<MessageObject> messageObjects = new ArrayList<>();
                     messageObjects.add(selectedObject);
