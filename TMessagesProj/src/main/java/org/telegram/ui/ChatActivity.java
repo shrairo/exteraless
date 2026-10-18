@@ -17320,7 +17320,12 @@ public class ChatActivity extends BaseFragment implements
 
             if (messageCell != null) {
                 messageObject = messageCell.getMessageObject();
-                if (messageObject != null && messageObject.getDialogId() == dialog_id && messageObject.getId() > maxVisibleId) {
+                if (messageObject == null) {
+                    // A cell may be laid out/drawn before its MessageObject is bound again
+                    // (see the null guard in drawChild). Its visible part is meaningless then.
+                    continue;
+                }
+                if (messageObject.getDialogId() == dialog_id && messageObject.getId() > maxVisibleId) {
                     maxVisibleId = messageObject.getId();
                     maxVisibleMessageObject = messageObject;
                 }

@@ -279,6 +279,12 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         DownloadController.FileDownloadProgressListener, TextSelectionHelper.SelectableView,
         NotificationCenter.NotificationCenterDelegate, FactorAnimator.Target, IMessageCell {
 
+    /**
+     * Set when the recycler takes this cell away. A pooled/cached holder may be attached again
+     * without a full rebind, so the cell content must be rebuilt on the next bind instead.
+     */
+    private boolean wasRecycled;
+
     public void onRecycled() {
         if (photoImage != null) {
             photoImage.setAllowStartAnimation(false);
@@ -315,7 +321,10 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         captionLayout = null;
         prevCaptionLayout = null;
         explanationLayout = null;
-        currentMessageObject = null;
+        // Do not null currentMessageObject here. RecyclerView can draw or query an attached cell
+        // whose content was already dropped, and ChatActivity.updateMessagesVisiblePart() used to
+        // crash on MessageObject == null. Force a full re-layout on the next bind instead.
+        wasRecycled = true;
     }
     private final static int TIME_APPEAR_MS = 200;
     private final static int UPLOADING_ALLOWABLE_ERROR = 1024 * 1024;
@@ -6944,7 +6953,8 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         mediaSpoilerRevealProgress = 0f;
         TLRPC.Message newReply = messageObject.hasValidReplyMessageObject() ? messageObject.replyMessageObject.messageOwner : null;
         boolean messageIdChanged = currentMessageObject == null || currentMessageObject.getId() != messageObject.getId();
-        boolean messageChanged = currentMessageObject != messageObject || messageObject.forceUpdate || (isRoundVideo && isPlayingRound != (MediaController.getInstance().isPlayingMessage(currentMessageObject) && delegate != null && !delegate.keyboardIsOpened()));
+        boolean messageChanged = currentMessageObject != messageObject || wasRecycled || messageObject.forceUpdate || (isRoundVideo && isPlayingRound != (MediaController.getInstance().isPlayingMessage(currentMessageObject) && delegate != null && !delegate.keyboardIsOpened()));
+        wasRecycled = false;
         boolean dataChanged = currentMessageObject != null && currentMessageObject.getId() == messageObject.getId() && lastSendState == MessageObject.MESSAGE_SEND_STATE_EDITING && messageObject.isSent() ||
                 currentMessageObject == messageObject && (isUserDataChanged() || photoNotSet) ||
                 lastPostAuthor != messageObject.messageOwner.post_author ||
